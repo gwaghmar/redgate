@@ -6,7 +6,7 @@ param(
     [string]$GitHubUsername,
     
     [Parameter(Mandatory=$false)]
-    [string]$RepositoryName = "REDGATE-SQL",
+    [string]$RepositoryName = "redgate",
     
     [Parameter(Mandatory=$false)]
     [switch]$Force
