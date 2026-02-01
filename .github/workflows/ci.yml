@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        # Add your test matrix here
+        python-version: [3.8, 3.9, '3.10', '3.11']
+        # node-version: [16, 18, 20]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        # Add your install commands here
+    
+    - name: Run tests
+      run: |
+        # Add your test commands here
+        # pytest
+        # npm test
+        echo "Add your test commands"
+
+    - name: Lint
+      run: |
+        # Add linting commands
+        # flake8 .
+        # black --check .
+        echo "Add your linting commands"

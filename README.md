@@ -1,6 +1,12 @@
 # SQL Compare Tool
 
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Active%20Development-yellow.svg)]()
+
 A comprehensive SQL Server database comparison and deployment tool with support for Azure Synapse, Entra MFA authentication, and advanced metadata extraction.
+
+**Repository:** [https://github.com/gwaghmar/redgate-sql-compare](https://github.com/gwaghmar/redgate-sql-compare)
 
 ## 🚀 Features
 
@@ -260,7 +266,7 @@ See [PROGRESS.md](PROGRESS.md) for detailed progress tracking.
 
 ## 📄 License
 
-See [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🐛 Known Issues
 
@@ -286,6 +292,18 @@ For issues, questions, or contributions:
 
 ---
 
+## 🚀 Deployment
+
+This is a **desktop application** (not web-deployed). Users install and run locally on Windows machines.
+
+**Installation Requirements:**
+- Windows 10/11
+- Python 3.10+
+- ODBC Driver 18 for SQL Server
+- SQL Server or Azure Synapse Analytics access
+
+---
+
 **Last Updated:** January 2026  
 **Version:** 1.0.0  
-**Status:** Active Development
+**Status:** Active Development (60% Complete)
