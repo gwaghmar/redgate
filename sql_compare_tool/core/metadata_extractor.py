@@ -4,6 +4,7 @@ from typing import Dict, Any, List, Callable, Optional
 
 from core.database import DatabaseConnection
 from utils.logger import get_logger
+from utils.error_handler import handle_errors, QueryError, ErrorContext
 
 logger = get_logger(__name__)
 
@@ -106,6 +107,8 @@ class MetadataExtractor:
             import re
             if not re.match(r'^[a-zA-Z0-9_]+$', schema_filter):
                 raise ValueError(f"Invalid schema filter: {schema_filter}. Only alphanumeric characters and underscores allowed.")
+            # Properly escape single quotes for SQL safety
+            schema_filter = schema_filter.replace("'", "''")
         schema_where = f" AND s.name = '{schema_filter}'" if schema_filter else ""
 
         # Use sys.columns for comprehensive column metadata

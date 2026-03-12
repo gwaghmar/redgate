@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict, Any, List
 
 from deepdiff import DeepDiff
+from utils.logger import get_logger
 
 
 STATUS = {
@@ -67,5 +68,10 @@ class SchemaComparator:
 
     @staticmethod
     def _diff(src: Any, tgt: Any) -> str:
-        diff = DeepDiff(src, tgt, ignore_order=True)
-        return diff.to_json() if diff else ""
+        try:
+            diff = DeepDiff(src, tgt, ignore_order=True)
+            return diff.to_json() if diff else ""
+        except Exception as e:
+            logger = get_logger(__name__)
+            logger.error(f"Error during diff comparison: {e}")
+            return f"{{\"error\": \"Comparison failed: {str(e)}\"}}"

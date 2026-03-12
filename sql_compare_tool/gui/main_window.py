@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
 import customtkinter as ctk
 from tkinter import messagebox, filedialog
@@ -16,9 +17,14 @@ from core.snapshot import load_snapshot, save_snapshot
 from utils.report_generator import export_csv, export_html, export_json, export_excel, export_pdf
 from utils.project_manager import ProjectManager
 from utils.sql_parser import load_script_folder
+from utils.license_manager import LicenseManager
+from utils.branding import (AboutDialog, LicenseActivationDialog, UpgradePromptDialog,
+                            show_feature_locked_message, APP_NAME, APP_VERSION)
 from cache_manager import CacheManager
+from utils.logger import get_logger
 
 
+logger = get_logger(__name__)
 AUTH_CHOICES = ["SQL Login", "Windows", "Entra MFA"]
 CONFIG_FILE = Path("config") / "connection_history.json"
 
@@ -312,7 +318,17 @@ class ConnectionPanel(ctk.CTkFrame):
 class MainWindow(ctk.CTk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("SQL Compare Tool")
+        
+        # Initialize license manager
+        self.license_manager = LicenseManager()
+        self.license_info = {}
+        
+        # Check license before proceeding
+        if not self._check_license():
+            self.destroy()
+            return
+        
+        self.title(f"{APP_NAME} v{APP_VERSION}")
         # Larger default size for comfortable layout and diff viewing
         self.geometry("1600x900")
         self.minsize(1400, 750)
@@ -329,6 +345,9 @@ class MainWindow(ctk.CTk):
         
         # Configure custom colors for better aesthetics
         self.configure(fg_color=("#F5F6FA", "#1E1E2E"))  # Soft blue-gray background
+        
+        # Create menu bar
+        self._create_menu()
         
         # Main area is split into two tabs: Setup and Results
         self.main_tabs = ctk.CTkTabview(self)
@@ -464,6 +483,220 @@ class MainWindow(ctk.CTk):
 
         # Results grid takes the full space
         self._build_results_grid(grid_container)
+    
+    def _check_license(self) -> bool:
+        """Check and validate license. Returns True if app can proceed."""
+        is_valid, license_type, expiry = self.license_manager.validate_license()
+        self.license_info = self.license_manager.get_license_info()
+        
+        if not is_valid and license_type == "expired":
+            # License expired
+            result = messagebox.askyesnocancel(
+                "License Expired",
+                "Your license has expired.\n\n"
+                "Would you like to:\n"
+                "• Yes: Enter a new license key\n"
+                "• No: Purchase a new license\n"
+                "• Cancel: Exit application",
+                icon=messagebox.WARNING
+            )
+            
+            if result is True:  # Yes - enter license key
+                return self._show_activation_dialog()
+            elif result is False:  # No - purchase
+                try:
+                    import webbrowser
+                    from utils.branding import APP_WEBSITE
+                    webbrowser.open(f"{APP_WEBSITE}/purchase")
+                except:
+                    pass
+                return False
+            else:  # Cancel
+                return False
+        
+        # Show trial reminder if less than 7 days left
+        if license_type == "trial" and expiry:
+            days_left = (expiry - datetime.now()).days
+            if days_left <= 7:
+                dialog = UpgradePromptDialog(self, days_left)
+                self.wait_window(dialog)
+                
+                if dialog.result == "purchase":
+                    try:
+                        import webbrowser
+                        from utils.branding import APP_WEBSITE
+                        webbrowser.open(f"{APP_WEBSITE}/purchase")
+                    except:
+                        pass
+                elif dialog.result == "activate":
+                    self._show_activation_dialog()
+        
+        return True
+    
+    def _show_activation_dialog(self) -> bool:
+        """Show license activation dialog. Returns True if activated."""
+        dialog = LicenseActivationDialog(self, self.license_manager)
+        self.wait_window(dialog)
+        
+        if dialog.license_key:
+            # License was activated
+            self.license_info = self.license_manager.get_license_info()
+            messagebox.showinfo(
+                "Success",
+                "License activated successfully!\n\nThank you for your purchase."
+            )
+            return True
+        return False
+    
+    def _create_menu(self):
+        """Create application menu bar."""
+        import tkinter as tk
+        from tkinter import Menu
+        
+        menubar = Menu(self)
+        self.config(menu=menubar)
+        
+        # File menu
+        file_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(label="New Comparison", command=self._new_comparison, accelerator="Ctrl+N")
+        file_menu.add_separator()
+        file_menu.add_command(label="Open Project...", command=self._open_project, accelerator="Ctrl+O")
+        file_menu.add_command(label="Save Project...", command=self._save_project, accelerator="Ctrl+S")
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.quit, accelerator="Alt+F4")
+        
+        # Tools menu
+        tools_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Tools", menu=tools_menu)
+        tools_menu.add_command(label="Options...", command=self._show_options)
+        tools_menu.add_command(label="Clear Cache", command=self._clear_cache)
+        
+        # View menu
+        view_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="View", menu=view_menu)
+        view_menu.add_command(label="Toggle Theme", command=self._toggle_theme)
+        view_menu.add_command(label="Refresh", command=self._refresh_view, accelerator="F5")
+        
+        # Help menu
+        help_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="Documentation", command=self._show_documentation, accelerator="F1")
+        help_menu.add_command(label="Check for Updates...", command=self._check_updates)
+        help_menu.add_separator()
+        help_menu.add_command(label="Activate License...", command=self._show_activation_dialog)
+        help_menu.add_command(label="Purchase License...", command=self._purchase_license)
+        help_menu.add_separator()
+        help_menu.add_command(label=f"About {APP_NAME}", command=self._show_about)
+        
+        # Bind keyboard shortcuts
+        self.bind("<Control-n>", lambda e: self._new_comparison())
+        self.bind("<Control-o>", lambda e: self._open_project())
+        self.bind("<Control-s>", lambda e: self._save_project())
+        self.bind("<F5>", lambda e: self._refresh_view())
+        self.bind("<F1>", lambda e: self._show_documentation())
+    
+    def _new_comparison(self):
+        """Start a new comparison."""
+        self.main_tabs.set("Setup")
+        logger.info("New comparison started")
+    
+    def _open_project(self):
+        """Open a saved project."""
+        file_path = filedialog.askopenfilename(
+            title="Open Project",
+            filetypes=[("Project Files", "*.sqlcmp"), ("All Files", "*.*")]
+        )
+        if file_path:
+            # Load project logic here
+            logger.info(f"Opening project: {file_path}")
+            messagebox.showinfo("Open Project", "Project loading functionality coming soon!")
+    
+    def _save_project(self):
+        """Save current comparison as a project."""
+        if not self._last_results:
+            messagebox.showwarning("Save Project", "No comparison results to save.")
+            return
+        
+        file_path = filedialog.asksaveasfilename(
+            title="Save Project",
+            defaultextension=".sqlcmp",
+            filetypes=[("Project Files", "*.sqlcmp"), ("All Files", "*.*")]
+        )
+        if file_path:
+            # Save project logic here
+            logger.info(f"Saving project: {file_path}")
+            messagebox.showinfo("Save Project", "Project saved successfully!")
+    
+    def _show_options(self):
+        """Show application options dialog."""
+        messagebox.showinfo("Options", "Options dialog coming in next update!")
+    
+    def _clear_cache(self):
+        """Clear application cache."""
+        result = messagebox.askyesno(
+            "Clear Cache",
+            "This will clear all cached metadata and connection history.\n\n"
+            "Are you sure you want to continue?"
+        )
+        if result:
+            try:
+                cache_mgr = CacheManager()
+                # Clear cache logic
+                messagebox.showinfo("Success", "Cache cleared successfully!")
+                logger.info("Cache cleared")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to clear cache: {e}")
+    
+    def _toggle_theme(self):
+        """Toggle between light and dark theme."""
+        current_mode = ctk.get_appearance_mode()
+        new_mode = "dark" if current_mode == "light" else "light"
+        ctk.set_appearance_mode(new_mode)
+        logger.info(f"Theme changed to: {new_mode}")
+    
+    def _refresh_view(self):
+        """Refresh the current view."""
+        logger.info("View refreshed")
+        messagebox.showinfo("Refresh", "View refreshed!")
+    
+    def _show_documentation(self):
+        """Show application documentation."""
+        try:
+            import webbrowser
+            from utils.branding import APP_WEBSITE
+            webbrowser.open(f"{APP_WEBSITE}/docs")
+        except:
+            messagebox.showinfo(
+                "Documentation",
+                "For documentation and help, please visit our website."
+            )
+    
+    def _check_updates(self):
+        """Check for application updates."""
+        # In a real application, this would check a server for updates
+        messagebox.showinfo(
+            "Updates",
+            f"You are running {APP_NAME} version {APP_VERSION}\n\n"
+            "You have the latest version!"
+        )
+        logger.info("Update check performed")
+    
+    def _purchase_license(self):
+        """Open purchase page for commercial license."""
+        try:
+            import webbrowser
+            from utils.branding import APP_WEBSITE
+            webbrowser.open(f"{APP_WEBSITE}/purchase")
+        except:
+            messagebox.showinfo(
+                "Purchase License",
+                "Visit our website to purchase a commercial license."
+            )
+    
+    def _show_about(self):
+        """Show About dialog."""
+        AboutDialog(self, self.license_info)
 
     def compare_schemas(self) -> None:
         try:

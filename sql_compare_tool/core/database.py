@@ -11,6 +11,7 @@ import pyodbc
 import msal
 
 from utils.logger import get_logger
+from utils.error_handler import ConnectionError, retry_on_failure, get_user_friendly_db_error
 
 logger = get_logger(__name__)
 
@@ -96,7 +97,8 @@ class DatabaseConnection:
                     return True, "Connection succeeded"
         except Exception as exc:
             logger.error(f"Connection test failed: {exc}", exc_info=True)
-            return False, str(exc)
+            user_message = get_user_friendly_db_error(exc)
+            return False, user_message
 
     def execute_query(self, query: str, timeout: int = 300) -> list[tuple]:
         if self.auth_type == "entra":
