@@ -2,7 +2,7 @@ pyodbc==5.3.0
 customtkinter==5.2.0
 Pillow==12.1.1
 lxml==4.9.3
-openpyxl==3.1.2
+openpyxl==3.1.5
 reportlab==4.4.10
 deepdiff==6.7.1
 cryptography==41.0.7
