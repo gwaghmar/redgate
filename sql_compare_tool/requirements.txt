@@ -4,6 +4,6 @@ Pillow==12.1.1
 lxml==4.9.3
 openpyxl==3.1.2
 reportlab==4.4.10
-deepdiff==6.7.1
+deepdiff==9.0.0
 cryptography==41.0.7
 msal==1.35.1
