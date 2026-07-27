@@ -1,4 +1,4 @@
-# SQL Compare Tool
+# SQL Schema Compare
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -6,7 +6,7 @@
 
 A comprehensive SQL Server database comparison and deployment tool with support for Azure Synapse, Entra MFA authentication, and advanced metadata extraction.
 
-**Repository:** [https://github.com/gwaghmar/redgate-sql-compare](https://github.com/gwaghmar/redgate-sql-compare)
+**Repository:** [https://github.com/gwaghmar/sql-schema-compare](https://github.com/gwaghmar/sql-schema-compare)
 
 ## 🚀 Features
 
